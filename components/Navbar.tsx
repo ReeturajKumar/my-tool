@@ -16,6 +16,7 @@ interface NavbarProps {
   onViewChange: (view: "list" | "board" | "workflow") => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onAddTaskClick?: () => void;
 }
 
 export default function Navbar({
@@ -23,16 +24,17 @@ export default function Navbar({
   onViewChange,
   searchQuery,
   onSearchChange,
+  onAddTaskClick,
 }: NavbarProps) {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSearchChange(e.target.value);
   };
 
   return (
-    <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-2 w-full">
+    <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-0.5 w-full">
       {/* Left: Title */}
       <h1 className="text-3xl font-semibold tracking-tight text-white shrink-0">
-        All projects
+        My task
       </h1>
 
       {/* Right: Integrated Searchbar + View Toggle + Actions */}
@@ -101,7 +103,10 @@ export default function Navbar({
         </button>
 
         {/* Add Task Primary Action Button */}
-        <button className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#9D6FFF] hover:bg-[#8b57ff] text-white font-medium text-xs rounded-xl shadow-lg shadow-[#9D6FFF]/25 transition-all duration-200 active:scale-95 shrink-0">
+        <button
+          onClick={onAddTaskClick}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#9D6FFF] hover:bg-[#8b57ff] text-white font-medium text-xs rounded-xl shadow-lg shadow-[#9D6FFF]/25 transition-all duration-200 active:scale-95 shrink-0"
+        >
           <Plus size={15} strokeWidth={2.5} />
           <span>Add task</span>
         </button>

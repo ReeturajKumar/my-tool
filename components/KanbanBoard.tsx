@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import TaskCard, { TaskItem } from "./TaskCard";
 
 export interface ColumnData {
@@ -163,10 +163,128 @@ export { mockColumns };
 interface KanbanBoardProps {
   activeStatus?: string;
   searchQuery?: string;
+  columns?: ColumnData[];
+  onColumnsChange?: (columns: ColumnData[]) => void;
+  onCardClick?: (task: TaskItem & { statusTitle?: string }) => void;
 }
 
-export default function KanbanBoard({ activeStatus = "all", searchQuery = "" }: KanbanBoardProps) {
-  const filteredColumns = mockColumns
+export default function KanbanBoard({
+  activeStatus = "all",
+  searchQuery = "",
+  columns: externalColumns,
+  onColumnsChange,
+  onCardClick,
+}: KanbanBoardProps) {
+  const [internalColumns, setInternalColumns] = useState<ColumnData[]>(mockColumns);
+
+  const columns = externalColumns || internalColumns;
+  const updateColumns = (newCols: ColumnData[]) => {
+    setInternalColumns(newCols);
+    if (onColumnsChange) onColumnsChange(newCols);
+  };
+
+  const [draggedItem, setDraggedItem] = useState<{
+    taskId: string;
+    sourceColumnId: string;
+  } | null>(null);
+
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+
+  const handleDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    taskId: string,
+    sourceColumnId: string
+  ) => {
+    setDraggedItem({ taskId, sourceColumnId });
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({ taskId, sourceColumnId })
+    );
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnter = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetColumnId: string
+  ) => {
+    e.preventDefault();
+    setDragOverColumnId(targetColumnId);
+  };
+
+  const handleDragLeave = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetColumnId: string
+  ) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      if (dragOverColumnId === targetColumnId) {
+        setDragOverColumnId(null);
+      }
+    }
+  };
+
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetColumnId: string
+  ) => {
+    e.preventDefault();
+    setDragOverColumnId(null);
+
+    let payload = draggedItem;
+    if (!payload) {
+      try {
+        const raw = e.dataTransfer.getData("application/json");
+        if (raw) payload = JSON.parse(raw);
+      } catch (err) {
+        console.error("Failed to parse drag payload", err);
+      }
+    }
+
+    if (!payload) return;
+
+    const { taskId, sourceColumnId } = payload;
+    if (sourceColumnId === targetColumnId) {
+      setDraggedItem(null);
+      return;
+    }
+
+    // Find task in source column
+    const sourceCol = columns.find((c) => c.id === sourceColumnId);
+    const taskToMove = sourceCol?.tasks.find((t) => t.id === taskId);
+
+    if (!taskToMove) return;
+
+    // Move task between columns
+    const nextColumns = columns.map((col) => {
+      if (col.id === sourceColumnId) {
+        return {
+          ...col,
+          count: col.tasks.length - 1,
+          tasks: col.tasks.filter((t) => t.id !== taskId),
+        };
+      }
+      if (col.id === targetColumnId) {
+        return {
+          ...col,
+          count: col.tasks.length + 1,
+          tasks: [
+            { ...taskToMove, isFloating: false }, // Insert at top of target section
+            ...col.tasks,
+          ],
+        };
+      }
+      return col;
+    });
+
+    updateColumns(nextColumns);
+    setDraggedItem(null);
+  };
+
+  const filteredColumns = columns
     .filter((col) => activeStatus === "all" || col.id === activeStatus)
     .map((col) => {
       if (!searchQuery.trim()) return col;
@@ -190,28 +308,57 @@ export default function KanbanBoard({ activeStatus = "all", searchQuery = "" }: 
           : "grid-cols-1 max-w-2xl mx-auto"
       }`}
     >
-      {filteredColumns.map((col) => (
-        <div key={col.id} className="flex flex-col h-full gap-3 min-w-[260px] overflow-hidden">
-          {/* Column Header (Fixed per column) */}
-          <div className="shrink-0 flex items-center justify-between px-1 border-b border-white/10 pb-2 pt-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-white tracking-tight">
-                {col.title}
-              </h3>
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-zinc-300">
-                {col.tasks.length}
-              </span>
+      {filteredColumns.map((col) => {
+        const isTarget = dragOverColumnId === col.id;
+
+        return (
+          <div
+            key={col.id}
+            onDragOver={handleDragOver}
+            onDragEnter={(e) => handleDragEnter(e, col.id)}
+            onDragLeave={(e) => handleDragLeave(e, col.id)}
+            onDrop={(e) => handleDrop(e, col.id)}
+            className={`flex flex-col h-full gap-3 min-w-[260px] overflow-hidden rounded-2xl p-2 transition-all duration-200 ${
+              isTarget
+                ? "bg-[#6397FF]/10 ring-2 ring-[#6397FF]/60 border-2 border-dashed border-[#6397FF]/40"
+                : "bg-transparent border border-transparent"
+            }`}
+          >
+            {/* Column Header */}
+            <div className="shrink-0 flex items-center justify-between px-1 border-b border-white/10 pb-2 pt-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-white tracking-tight">
+                  {col.title}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-zinc-300">
+                  {col.tasks.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Cards List */}
+            <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar min-h-0 pr-1 pb-6">
+              {/* Active Drop zone placeholder at top */}
+              {isTarget && (
+                <div className="p-3.5 rounded-2xl border-2 border-dashed border-[#6397FF]/60 bg-[#6397FF]/15 text-center text-xs font-semibold text-[#6397FF] animate-pulse">
+                  Drop task at top
+                </div>
+              )}
+
+              {col.tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  columnId={col.id}
+                  onDragStart={handleDragStart}
+                  isDragging={draggedItem?.taskId === task.id}
+                  onClick={(t) => onCardClick?.({ ...t, statusTitle: col.title })}
+                />
+              ))}
             </div>
           </div>
-
-          {/* Cards List (Section-wise Independent Scroll area) */}
-          <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar min-h-0 pr-1 pb-6">
-            {col.tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

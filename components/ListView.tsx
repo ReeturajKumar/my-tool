@@ -6,9 +6,10 @@ import { Calendar, MessageSquare, Paperclip } from "lucide-react";
 
 interface ListViewProps {
   tasks: (TaskItem & { statusTitle: string })[];
+  onCardClick?: (task: TaskItem & { statusTitle: string }) => void;
 }
 
-export default function ListView({ tasks }: ListViewProps) {
+export default function ListView({ tasks, onCardClick }: ListViewProps) {
   return (
     <div className="w-full bg-[#161617] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
       <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[#1c1c1e] text-xs font-semibold text-zinc-400 border-b border-white/10">
@@ -23,6 +24,7 @@ export default function ListView({ tasks }: ListViewProps) {
         {tasks.map((task) => (
           <div
             key={task.id}
+            onClick={() => onCardClick?.(task)}
             className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-white/5 transition-colors cursor-pointer"
           >
             {/* Title & Tags */}

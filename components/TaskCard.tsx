@@ -28,6 +28,10 @@ export interface TaskItem {
 
 interface TaskCardProps {
   task: TaskItem;
+  columnId: string;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>, taskId: string, columnId: string) => void;
+  isDragging?: boolean;
+  onClick?: (task: TaskItem) => void;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -38,12 +42,31 @@ const tagColorStyles: Record<string, string> = {
   Mobile: "bg-[#F59E0B] text-white",
 };
 
-export default function TaskCard({ task }: TaskCardProps) {
+export default function TaskCard({ task, columnId, onDragStart, isDragging, onClick }: TaskCardProps) {
   const isFloating = task.isFloating;
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    if (onDragStart) {
+      onDragStart(e, task.id, columnId);
+    }
+  };
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(task);
+    }
+  };
 
   if (isFloating) {
     return (
-      <div className="relative group cursor-grab active:cursor-grabbing my-2 z-20 transform -rotate-3 scale-[1.03] transition-transform duration-200">
+      <div
+        draggable={true}
+        onDragStart={handleDragStart}
+        onClick={handleClick}
+        className={`relative group cursor-grab active:cursor-grabbing my-2 z-20 transform -rotate-3 scale-[1.03] transition-all duration-200 ${
+          isDragging ? "opacity-40 scale-95" : ""
+        }`}
+      >
         {/* Floating White Card */}
         <div className="bg-white text-zinc-900 p-5 rounded-2xl shadow-2xl border border-white/20">
           {/* Tags & Date */}
@@ -107,7 +130,14 @@ export default function TaskCard({ task }: TaskCardProps) {
   }
 
   return (
-    <div className="bg-[#1b1b1e] hover:bg-[#202024] border border-white/10 p-5 rounded-2xl transition-all duration-200 hover:border-white/20 group cursor-pointer shadow-md">
+    <div
+      draggable={true}
+      onDragStart={handleDragStart}
+      onClick={handleClick}
+      className={`bg-[#1b1b1e] hover:bg-[#202024] border border-white/10 p-5 rounded-2xl transition-all duration-200 hover:border-white/20 group cursor-grab active:cursor-grabbing shadow-md ${
+        isDragging ? "opacity-40 scale-95 border-dashed border-[#6397FF]" : ""
+      }`}
+    >
       {/* Top: Tags & Date */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5 flex-wrap">

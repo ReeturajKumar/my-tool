@@ -40,6 +40,10 @@ body {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -49,4 +53,95 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom sleek horizontal scrollbar visible when content overflows */
+.custom-scrollbar-x {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+  margin: 0 4px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 111, 255, 0.6);
+}
+
+
+@keyframes drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.animate-drawerBackdrop {
+  animation: drawer-backdrop-in 180ms ease-out both;
+}
+
+.animate-drawerIn {
+  animation: drawer-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-drawerBackdropOut {
+  animation: drawer-backdrop-out 260ms ease-in both;
+}
+
+.animate-drawerOut {
+  animation: drawer-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drawerBackdrop,
+  .animate-drawerIn,
+  .animate-drawerBackdropOut,
+  .animate-drawerOut {
+    animation-duration: 1ms;
+  }
 }

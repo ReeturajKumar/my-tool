@@ -5,8 +5,8 @@ import { TaskItem } from "./TaskCard";
 import { Calendar, MessageSquare, Paperclip } from "lucide-react";
 
 interface ListViewProps {
-  tasks: (TaskItem & { statusTitle: string })[];
-  onCardClick?: (task: TaskItem & { statusTitle: string }) => void;
+  tasks: (TaskItem & { statusTitle: string; columnId?: string })[];
+  onCardClick?: (task: TaskItem & { statusTitle: string; columnId?: string }) => void;
 }
 
 export default function ListView({ tasks, onCardClick }: ListViewProps) {
@@ -57,14 +57,39 @@ export default function ListView({ tasks, onCardClick }: ListViewProps) {
 
             {/* Assignees */}
             <div className="col-span-2 flex items-center -space-x-2">
-              {task.users.map((user, idx) => (
-                <img
-                  key={idx}
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-6 h-6 rounded-full border border-zinc-800 object-cover"
-                />
-              ))}
+              {task.users && task.users.length > 0 ? (
+                task.users.map((user, idx) =>
+                  user.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={idx}
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-6 h-6 rounded-full border border-zinc-800 object-cover"
+                    />
+                  ) : (
+                    <div
+                      key={idx}
+                      className="w-6 h-6 rounded-full border border-zinc-800 bg-[#9D6FFF]/30 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center"
+                    >
+                      {(user.name || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )
+                )
+              ) : task.creatorAvatar || task.creatorName ? (
+                task.creatorAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={task.creatorAvatar}
+                    alt={task.creatorName || "Creator"}
+                    className="w-6 h-6 rounded-full border border-zinc-800 object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full border border-zinc-800 bg-[#9D6FFF]/30 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center">
+                    {(task.creatorName || "U").charAt(0).toUpperCase()}
+                  </div>
+                )
+              ) : null}
             </div>
 
             {/* Metrics */}

@@ -37,9 +37,18 @@ export default function WorkflowView() {
       title: "Ready",
       count: 9,
       icon: CheckCircle2,
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
+      description: "Approved for staging deployment and production release.",
+    },
+    {
+      id: "completed",
+      title: "Completed",
+      count: 4,
+      icon: CheckCircle2,
       color: "text-emerald-400",
       bgColor: "bg-emerald-500/10",
-      description: "Approved for staging deployment and production release.",
+      description: "Successfully shipped to production and closed.",
     },
   ];
 
@@ -52,7 +61,7 @@ export default function WorkflowView() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 relative">
         {steps.map((step, idx) => {
           const Icon = step.icon;
           return (

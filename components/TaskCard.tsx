@@ -13,6 +13,26 @@ export interface TaskUser {
   avatar: string;
 }
 
+export interface TaskComment {
+  id: string;
+  userName: string;
+  userAvatar?: string;
+  text: string;
+  createdAt: string;
+  likes?: number;
+}
+
+export interface TaskActivity {
+  id: string;
+  type: "created" | "status_changed" | "due_date_changed" | "comment_added" | "assigned" | "updated";
+  userName: string;
+  userAvatar?: string;
+  action: string;
+  details?: string;
+  note?: string;
+  timestamp: string;
+}
+
 export interface TaskItem {
   id: string;
   title: string;
@@ -24,6 +44,11 @@ export interface TaskItem {
   attachmentsCount: number;
   previewImage?: string;
   isFloating?: boolean;
+  comments?: TaskComment[];
+  activities?: TaskActivity[];
+  creatorName?: string;
+  creatorAvatar?: string;
+  createdAt?: string;
 }
 
 interface TaskCardProps {
@@ -41,6 +66,22 @@ const tagColorStyles: Record<string, string> = {
   Branding: "bg-[#FF6B6B] text-white",
   Mobile: "bg-[#F59E0B] text-white",
 };
+
+export function stripHtmlTags(html?: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export default function TaskCard({ task, columnId, onDragStart, isDragging, onClick }: TaskCardProps) {
   const isFloating = task.isFloating;
@@ -68,9 +109,9 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
         }`}
       >
         {/* Floating White Card */}
-        <div className="bg-white text-zinc-900 p-5 rounded-2xl shadow-2xl border border-white/20">
+        <div className="bg-white text-zinc-900 p-4 rounded-2xl shadow-2xl border border-white/20">
           {/* Tags & Date */}
-          <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5 flex-wrap">
               {task.tags.map((tag) => (
                 <span
@@ -94,22 +135,49 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
           <h4 className="text-base font-bold text-zinc-900 tracking-tight leading-snug mb-1.5">
             {task.title}
           </h4>
-          <p className="text-xs text-zinc-600 leading-relaxed mb-4 line-clamp-3">
-            {task.description}
-          </p>
+          {stripHtmlTags(task.description) && (
+            <p className="text-xs text-zinc-600 leading-relaxed mb-3 line-clamp-3">
+              {stripHtmlTags(task.description)}
+            </p>
+          )}
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
             {/* User Avatars Stack */}
             <div className="flex items-center -space-x-2">
-              {task.users.map((user, idx) => (
-                <img
-                  key={idx}
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-6 h-6 rounded-full border-2 border-white object-cover"
-                />
-              ))}
+              {task.users && task.users.length > 0 ? (
+                task.users.map((user, idx) =>
+                  user.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={idx}
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                    />
+                  ) : (
+                    <div
+                      key={idx}
+                      className="w-6 h-6 rounded-full border-2 border-white bg-[#9D6FFF]/20 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center"
+                    >
+                      {(user.name || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )
+                )
+              ) : task.creatorAvatar || task.creatorName ? (
+                task.creatorAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={task.creatorAvatar}
+                    alt={task.creatorName || "Creator"}
+                    className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-white bg-[#9D6FFF]/20 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center">
+                    {(task.creatorName || "U").charAt(0).toUpperCase()}
+                  </div>
+                )
+              ) : null}
             </div>
 
             {/* Metrics */}
@@ -134,12 +202,12 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
       draggable={true}
       onDragStart={handleDragStart}
       onClick={handleClick}
-      className={`bg-[#1b1b1e] hover:bg-[#202024] border border-white/10 p-5 rounded-2xl transition-all duration-200 hover:border-white/20 group cursor-grab active:cursor-grabbing shadow-md ${
+      className={`bg-[#1b1b1e] hover:bg-[#202024] border border-white/10 p-4 rounded-2xl transition-all duration-200 hover:border-white/20 group cursor-grab active:cursor-grabbing shadow-md ${
         isDragging ? "opacity-40 scale-95 border-dashed border-[#6397FF]" : ""
       }`}
     >
       {/* Top: Tags & Date */}
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {task.tags.map((tag) => (
             <span
@@ -165,13 +233,16 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
       </h4>
 
       {/* Description */}
-      <p className="text-xs text-zinc-400 leading-relaxed mb-4 line-clamp-3">
-        {task.description}
-      </p>
+      {stripHtmlTags(task.description) && (
+        <p className="text-xs text-zinc-400 leading-relaxed mb-3 line-clamp-3">
+          {stripHtmlTags(task.description)}
+        </p>
+      )}
 
       {/* Optional Attachment Image */}
       {task.previewImage && (
-        <div className="my-3 rounded-xl overflow-hidden border border-white/10 max-h-36 bg-black/40">
+        <div className="my-2 rounded-xl overflow-hidden border border-white/10 max-h-28 bg-black/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={task.previewImage}
             alt={task.title}
@@ -181,17 +252,42 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+      <div className="flex items-center justify-between pt-2 border-t border-white/5">
         {/* User Avatars Stack */}
         <div className="flex items-center -space-x-2">
-          {task.users.map((user, idx) => (
-            <img
-              key={idx}
-              src={user.avatar}
-              alt={user.name}
-              className="w-6 h-6 rounded-full border-2 border-[#1b1b1e] object-cover"
-            />
-          ))}
+          {task.users && task.users.length > 0 ? (
+            task.users.map((user, idx) =>
+              user.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={idx}
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-6 h-6 rounded-full border-2 border-[#1b1b1e] object-cover"
+                />
+              ) : (
+                <div
+                  key={idx}
+                  className="w-6 h-6 rounded-full border-2 border-[#1b1b1e] bg-[#9D6FFF]/30 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center"
+                >
+                  {(user.name || "U").charAt(0).toUpperCase()}
+                </div>
+              )
+            )
+          ) : task.creatorAvatar || task.creatorName ? (
+            task.creatorAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={task.creatorAvatar}
+                alt={task.creatorName || "Creator"}
+                className="w-6 h-6 rounded-full border-2 border-[#1b1b1e] object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full border-2 border-[#1b1b1e] bg-[#9D6FFF]/30 text-[#9D6FFF] text-[9px] font-bold flex items-center justify-center">
+                {(task.creatorName || "U").charAt(0).toUpperCase()}
+              </div>
+            )
+          ) : null}
         </div>
 
         {/* Metrics */}

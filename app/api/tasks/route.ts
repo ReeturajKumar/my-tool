@@ -211,8 +211,15 @@ export async function POST(request: Request) {
     const taskCreatedAt = existingTaskCreatedAt ? new Date(asString(existingTaskCreatedAt)) : now;
     const validCreatedAt = isNaN(taskCreatedAt.getTime()) ? now : taskCreatedAt;
 
-    const fieldsToSet = { ...task };
+    const fieldsToSet: Record<string, unknown> = { ...task };
     delete (fieldsToSet as { createdAt?: string }).createdAt;
+
+    const fieldsToUnset: Record<string, "" | 1> = {};
+    if (!task.previewImage) {
+      delete fieldsToSet.previewImage;
+      fieldsToUnset.previewImage = "";
+    }
+
     const document = {
       ...fieldsToSet,
       userId,
@@ -220,14 +227,19 @@ export async function POST(request: Request) {
       updatedAt: now,
     };
 
+    const updateQuery: Record<string, unknown> = {
+      $set: document,
+      $setOnInsert: { createdAt: validCreatedAt },
+    };
+    if (Object.keys(fieldsToUnset).length > 0) {
+      updateQuery.$unset = fieldsToUnset;
+    }
+
     await (await getDatabase())
       .collection<StoredTask>("tasks")
       .updateOne(
         { userId, id },
-        {
-          $set: document,
-          $setOnInsert: { createdAt: validCreatedAt },
-        },
+        updateQuery,
         { upsert: true }
       );
 
@@ -258,20 +270,32 @@ export async function PATCH(request: Request) {
       const task = id ? sanitizeTask(item.task, id) : null;
       if (!task) return [];
 
-      const taskFields = { ...task };
+      const taskFields: Record<string, unknown> = { ...task };
       delete (taskFields as { createdAt?: string }).createdAt;
+
+      const taskUnset: Record<string, "" | 1> = {};
+      if (!task.previewImage) {
+        delete taskFields.previewImage;
+        taskUnset.previewImage = "";
+      }
+
       const existingTaskCreatedAt = (item.task as { createdAt?: unknown }).createdAt;
       const taskCreatedAt = existingTaskCreatedAt ? new Date(asString(existingTaskCreatedAt)) : now;
       const validCreatedAt = isNaN(taskCreatedAt.getTime()) ? now : taskCreatedAt;
+
+      const updateDoc: Record<string, unknown> = {
+        $set: { ...taskFields, userId, columnId: item.columnId, updatedAt: now },
+        $setOnInsert: { createdAt: validCreatedAt },
+      };
+      if (Object.keys(taskUnset).length > 0) {
+        updateDoc.$unset = taskUnset;
+      }
 
       return [
         {
           updateOne: {
             filter: { userId, id },
-            update: {
-              $set: { ...taskFields, userId, columnId: item.columnId, updatedAt: now },
-              $setOnInsert: { createdAt: validCreatedAt },
-            },
+            update: updateDoc,
             upsert: true,
           },
         },

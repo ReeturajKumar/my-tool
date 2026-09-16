@@ -23,7 +23,7 @@ import {
 import { TaskActivity, TaskComment, TaskItem } from "./TaskCard";
 import RichTextEditor, { renderRichText } from "./RichTextEditor";
 import ImageLightboxModal from "./ImageLightboxModal";
-import { uploadImageToCloudinary } from "@/lib/upload";
+import { deleteImageFromCloudinary, uploadImageToCloudinary } from "@/lib/upload";
 
 interface TaskDetailModalProps {
   task: TaskItem & { statusTitle?: string; columnId?: string };
@@ -378,8 +378,10 @@ export default function TaskDetailModal({
   // Save changes to parent & MongoDB
   const persistTaskUpdate = async (overrides: Partial<TaskItem> = {}, newColId?: string) => {
     const colToUse = newColId ?? targetColumnId;
-    const finalPreviewImage =
-      overrides.previewImage !== undefined ? overrides.previewImage : task.previewImage;
+    const hasPreviewImageOverride = "previewImage" in overrides;
+    const finalPreviewImage = hasPreviewImageOverride
+      ? (overrides.previewImage || undefined)
+      : task.previewImage;
 
     const updated: TaskItem = {
       ...task,
@@ -446,6 +448,11 @@ export default function TaskDetailModal({
 
   // Handle removing image
   const handleRemoveImage = async () => {
+    const oldImage = task.previewImage;
+    if (oldImage) {
+      void deleteImageFromCloudinary(oldImage);
+    }
+
     const currentUserName =
       user?.fullName || user?.firstName || user?.username || "You";
     const currentUserAvatar = user?.imageUrl || "";
@@ -461,7 +468,7 @@ export default function TaskDetailModal({
     const updatedActivities = [newActivity, ...activities];
     setActivities(updatedActivities);
     await persistTaskUpdate({
-      previewImage: undefined,
+      previewImage: "",
       attachmentsCount: 0,
       activities: updatedActivities,
     });

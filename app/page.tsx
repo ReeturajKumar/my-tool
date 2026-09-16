@@ -31,7 +31,7 @@ export default function Home() {
     const tasks = nextColumns.flatMap((column) =>
       column.tasks.map((task) => ({
         columnId: column.id,
-        task: { ...task, isFloating: false },
+        task: { ...task, isFloating: false, previewImage: task.previewImage || "" },
       }))
     );
 
@@ -158,13 +158,18 @@ export default function Home() {
     targetColumnId: string,
     updatedTask: TaskItem
   ) => {
+    const sanitizedTaskForClient = { ...updatedTask };
+    if (!sanitizedTaskForClient.previewImage) {
+      delete sanitizedTaskForClient.previewImage;
+    }
+
     const nextCols = columns.map((col) => {
       // If task remains in the same stage:
       if (originalColumnId === targetColumnId) {
         if (col.id === originalColumnId) {
           return {
             ...col,
-            tasks: col.tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+            tasks: col.tasks.map((t) => (t.id === updatedTask.id ? sanitizedTaskForClient : t)),
           };
         }
         return col;
@@ -182,32 +187,41 @@ export default function Home() {
         return {
           ...col,
           count: col.tasks.length + 1,
-          tasks: [updatedTask, ...col.tasks],
+          tasks: [sanitizedTaskForClient, ...col.tasks],
         };
       }
       return col;
     });
 
     setColumns(nextCols);
-    setSelectedTask((prev) =>
-      prev && prev.id === updatedTask.id
-        ? {
-            ...prev,
-            ...updatedTask,
-            columnId: targetColumnId,
-            statusTitle:
-              columns.find((c) => c.id === targetColumnId)?.title ||
-              prev.statusTitle,
-          }
-        : prev
-    );
+    setSelectedTask((prev) => {
+      if (!prev || prev.id !== updatedTask.id) return prev;
+      const next: TaskWithStatus = {
+        ...prev,
+        ...updatedTask,
+        columnId: targetColumnId,
+        statusTitle:
+          columns.find((c) => c.id === targetColumnId)?.title ||
+          prev.statusTitle,
+      };
+      if (!updatedTask.previewImage) {
+        delete next.previewImage;
+      }
+      return next;
+    });
 
     if (isSignedIn) {
       try {
         await fetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ columnId: targetColumnId, task: updatedTask }),
+          body: JSON.stringify({
+            columnId: targetColumnId,
+            task: {
+              ...updatedTask,
+              previewImage: updatedTask.previewImage || "",
+            },
+          }),
         });
       } catch (err) {
         console.error("Failed to update task", err);

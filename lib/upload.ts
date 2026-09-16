@@ -90,3 +90,42 @@ export async function uploadDataUrlToCloudinary(
     };
   }
 }
+
+/**
+ * Extracts public_id from a Cloudinary image URL
+ */
+export function extractCloudinaryPublicId(url: string): string | null {
+  if (!url || typeof url !== "string" || !url.includes("cloudinary.com")) return null;
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    const afterUpload = parts[1].replace(/^v\d+\//, "");
+    const cleanPath = afterUpload.split("?")[0];
+    const lastDotIndex = cleanPath.lastIndexOf(".");
+    return lastDotIndex !== -1 ? cleanPath.slice(0, lastDotIndex) : cleanPath;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deletes an image from Cloudinary by its URL or public_id
+ */
+export async function deleteImageFromCloudinary(urlOrPublicId: string): Promise<boolean> {
+  try {
+    if (!urlOrPublicId) return false;
+    const publicId = urlOrPublicId.startsWith("http")
+      ? extractCloudinaryPublicId(urlOrPublicId)
+      : urlOrPublicId;
+
+    if (!publicId) return false;
+
+    const res = await fetch(`/api/upload?public_id=${encodeURIComponent(publicId)}`, {
+      method: "DELETE",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+

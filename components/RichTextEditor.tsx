@@ -70,51 +70,66 @@ export function renderRichText(content: string): string {
 
   let html = content;
 
-  // Code blocks ```code```
+  // ── Style existing HTML <ol> / <ul> / <li> tags from the contentEditable editor ──
+  // These are already valid HTML but Tailwind resets their list-style. Add classes.
+  html = html.replace(
+    /<ol(\s[^>]*)?>/gi,
+    '<ol$1 style="list-style-type: decimal; padding-left: 1.25rem; margin: 0.375rem 0;">'
+  );
+  html = html.replace(
+    /<ul(\s[^>]*)?>/gi,
+    '<ul$1 style="list-style-type: disc; padding-left: 1.25rem; margin: 0.375rem 0;">'
+  );
+  html = html.replace(
+    /<li(\s[^>]*)?>/gi,
+    '<li$1 style="margin: 0.125rem 0; color: #d4d4d8;">'
+  );
+
+  // ── Code blocks ```code``` (markdown) ──
   html = html.replace(
     /```([\s\S]*?)```/g,
     '<pre class="bg-black/60 p-2.5 rounded-lg my-1.5 overflow-x-auto text-[11px] font-mono text-emerald-400 border border-white/10"><code>$1</code></pre>'
   );
 
-  // Inline code `code`
+  // ── Inline code `code` (markdown) ──
   html = html.replace(
     /`([^`]+)`/g,
     '<code class="bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-emerald-400">$1</code>'
   );
 
-  // Markdown images ![alt](url)
+  // ── Markdown images ![alt](url) ──
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '<img src="$2" alt="$1" class="max-h-48 rounded-lg my-2 border border-white/10 object-cover" />'
   );
 
-  // Markdown links [text](url)
+  // ── Markdown links [text](url) ──
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#6397FF] underline hover:text-[#8cb3ff] transition-colors">$1</a>'
   );
 
-  // Markdown Headings
+  // ── Markdown Headings ──
   html = html.replace(/^### (.*$)/gim, '<h3 class="text-sm font-bold text-white mt-2 mb-1">$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2 class="text-base font-bold text-white mt-2.5 mb-1">$1</h2>');
   html = html.replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold text-white mt-3 mb-1.5">$1</h1>');
 
-  // Blockquote > text
+  // ── Blockquote > text ──
   html = html.replace(
     /^> (.*$)/gim,
     '<blockquote class="border-l-2 border-[#9D6FFF] pl-3 py-0.5 my-1.5 text-zinc-400 italic bg-white/[0.02] rounded-r">$1</blockquote>'
   );
 
-  // Bold **text**
+  // ── Bold **text** ──
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
 
-  // Italic *text*
+  // ── Italic *text* ──
   html = html.replace(/\*([^*]+)\*/g, '<em class="italic text-zinc-300">$1</em>');
 
-  // Strikethrough ~~text~~
+  // ── Strikethrough ~~text~~ ──
   html = html.replace(/~~([^~]+)~~/g, '<del class="line-through text-zinc-500">$1</del>');
 
-  // Task list items
+  // ── Task list (markdown) ──
   html = html.replace(
     /^- \[x\] (.*$)/gim,
     '<div class="flex items-center gap-2 my-1"><input type="checkbox" checked disabled class="accent-[#9D6FFF] rounded" /><span class="line-through text-zinc-500">$1</span></div>'
@@ -124,14 +139,15 @@ export function renderRichText(content: string): string {
     '<div class="flex items-center gap-2 my-1"><input type="checkbox" disabled class="accent-[#9D6FFF] rounded" /><span class="text-zinc-300">$1</span></div>'
   );
 
-  // Bullet list items
-  html = html.replace(/^- (.*$)/gim, '<li class="ml-4 list-disc text-zinc-300">$1</li>');
+  // ── Markdown bullet list ──
+  html = html.replace(/^- (.*$)/gim, '<li style="list-style-type: disc; margin-left: 1.25rem; color: #d4d4d8;">$1</li>');
 
-  // Numbered list items
-  html = html.replace(/^\d+\. (.*$)/gim, '<li class="ml-4 list-decimal text-zinc-300">$1</li>');
+  // ── Markdown numbered list ──
+  html = html.replace(/^\d+\. (.*$)/gim, '<li style="list-style-type: decimal; margin-left: 1.25rem; color: #d4d4d8;">$1</li>');
 
   return html;
 }
+
 
 export default function RichTextEditor({
   value,

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Calendar, MessageSquare, Paperclip } from "lucide-react";
+import { renderRichText } from "./RichTextEditor";
 
 export interface TaskTag {
   label: string;
@@ -83,6 +84,41 @@ export function stripHtmlTags(html?: string): string {
     .trim();
 }
 
+/** Renders up to 2 formatted list items from the description for the card preview */
+function getCardPreview(raw: string): { isRich: boolean; html: string } {
+  if (!raw) return { isRich: false, html: "" };
+
+  const rendered = renderRichText(raw);
+
+  // Detect if it's an ordered list
+  const isOrdered = /<ol[\s>]/i.test(rendered);
+  // Extract all <li> inner contents
+  const liMatches = [...rendered.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
+
+  if (liMatches.length > 0) {
+    const MAX = 2;
+    const shown = liMatches.slice(0, MAX);
+    const remaining = liMatches.length - MAX;
+
+    const listType = isOrdered ? "decimal" : "disc";
+    const items = shown
+      .map((m) => `<li style="list-style-type:${listType};margin-left:1.1rem;color:#a1a1aa;font-size:11px;line-height:1.5;">${stripHtmlTags(m[1])}</li>`)
+      .join("");
+
+    let html = `<ol style="margin:0;padding:0;">${items}</ol>`;
+    if (remaining > 0) {
+      html += `<span style="color:#71717a;font-size:11px;">+${remaining} more item${remaining > 1 ? "s" : ""}…</span>`;
+    }
+    return { isRich: true, html };
+  }
+
+  // No list found — strip tags and truncate plain text
+  const plain = stripHtmlTags(rendered);
+  if (!plain) return { isRich: false, html: "" };
+  const truncated = plain.length > 110 ? plain.slice(0, 110) + "…" : plain;
+  return { isRich: false, html: truncated };
+}
+
 export default function TaskCard({ task, columnId, onDragStart, isDragging, onClick }: TaskCardProps) {
   const isFloating = task.isFloating;
 
@@ -135,11 +171,20 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
           <h4 className="text-base font-bold text-zinc-900 tracking-tight leading-snug mb-1.5">
             {task.title}
           </h4>
-          {stripHtmlTags(task.description) && (
-            <p className="text-xs text-zinc-600 leading-relaxed mb-3 line-clamp-3">
-              {stripHtmlTags(task.description)}
-            </p>
-          )}
+          {task.description && (() => {
+            const preview = getCardPreview(task.description);
+            if (!preview.html) return null;
+            return preview.isRich ? (
+              <div
+                className="mb-3"
+                dangerouslySetInnerHTML={{ __html: preview.html }}
+              />
+            ) : (
+              <p className="text-xs text-zinc-600 leading-relaxed mb-3">
+                {preview.html}
+              </p>
+            );
+          })()}
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
@@ -233,11 +278,20 @@ export default function TaskCard({ task, columnId, onDragStart, isDragging, onCl
       </h4>
 
       {/* Description */}
-      {stripHtmlTags(task.description) && (
-        <p className="text-xs text-zinc-400 leading-relaxed mb-3 line-clamp-3">
-          {stripHtmlTags(task.description)}
-        </p>
-      )}
+      {task.description && (() => {
+        const preview = getCardPreview(task.description);
+        if (!preview.html) return null;
+        return preview.isRich ? (
+          <div
+            className="mb-3"
+            dangerouslySetInnerHTML={{ __html: preview.html }}
+          />
+        ) : (
+          <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+            {preview.html}
+          </p>
+        );
+      })()}
 
       {/* Optional Attachment Image */}
       {task.previewImage && (

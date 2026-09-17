@@ -1469,7 +1469,7 @@ export default function TaskDetailModal({
                 />
               ) : (
                 <div
-                  className="bg-[#141416] p-4 rounded-2xl border border-white/5 text-xs sm:text-sm text-zinc-200 leading-relaxed min-h-[100px] whitespace-pre-wrap select-text"
+                  className="bg-[#141416] p-4 rounded-2xl border border-white/5 text-xs sm:text-sm text-zinc-200 leading-relaxed min-h-[100px] select-text"
                   dangerouslySetInnerHTML={{
                     __html: renderRichText(description || "No description provided."),
                   }}
